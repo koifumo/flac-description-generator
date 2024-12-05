@@ -4,6 +4,7 @@
 #![allow(clippy::struct_field_names)]
 
 use std::fs::{File, ReadDir};
+use std::io;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 use clap::Parser;
@@ -85,6 +86,13 @@ fn main() -> Result<(), Error> {
     let sorted_files = sort_tagged_files(tagged_files);
     let release = Release::from(sorted_files);
 
-    println!("{release}");
+    println!("{release}\n\nPress ENTER to copy to clipboard");
+    let mut buf = String::new();
+    let _ = io::stdin().read_line(&mut buf);
+    let mut clipboard = clippers::Clipboard::get();
+    if clipboard.write_text(release.to_string()).is_err() {
+        println!("Failed to copy to clipboard");
+        let _ = io::stdin().read_line(&mut buf);
+    }
     Ok(())
 }
