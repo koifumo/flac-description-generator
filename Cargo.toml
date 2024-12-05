@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.22", features = ["derive"] }
-clippers = "0.1.2"
+copypasta = "0.10.1"
 lofty = "0.21.1"
 log = "0.4.22"

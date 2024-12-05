@@ -14,6 +14,7 @@ use lofty::file::TaggedFile;
 use lofty::read_from;
 use lofty::tag::{Tag, TagType};
 use models::release::Release;
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 mod models;
 
@@ -75,6 +76,11 @@ fn sort_tagged_files(mut tagged_files: Vec<TaggedFile>) -> Vec<TaggedFile> {
     tagged_files
 }
 
+fn wait_for_confirmation() {
+    let mut buf = String::new();
+    let _ = io::stdin().read_line(&mut buf);
+}
+
 fn main() -> Result<(), Error> {
     let args = Args::parse();
     let path = match args.path {
@@ -87,12 +93,16 @@ fn main() -> Result<(), Error> {
     let release = Release::from(sorted_files);
 
     println!("{release}\n\nPress ENTER to copy to clipboard");
-    let mut buf = String::new();
-    let _ = io::stdin().read_line(&mut buf);
-    let mut clipboard = clippers::Clipboard::get();
-    if clipboard.write_text(release.to_string()).is_err() {
+    wait_for_confirmation();
+    let Ok(mut clipboard) = ClipboardContext::new() else {
+        println!("Failed to create clipboard context.");
+        wait_for_confirmation();
+        return Ok(())
+    };
+    if clipboard.set_contents(release.to_string()).is_err() {
         println!("Failed to copy to clipboard");
-        let _ = io::stdin().read_line(&mut buf);
+        wait_for_confirmation();
     }
     Ok(())
 }
+
