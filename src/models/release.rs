@@ -9,6 +9,7 @@ use crate::models::albuminfo::AlbumInfo;
 pub struct Release {
     pub duration_in_millis: u32,
     pub discs: Vec<Disc>,
+    pub mofo: Option<String>,
     album_info: AlbumInfo,
 }
 
@@ -33,6 +34,7 @@ impl From<Vec<TaggedFile>> for Release {
             duration_in_millis: discs.iter().fold(0, |acc, d| acc + d.duration_in_millis),
             discs,
             album_info,
+            mofo: None,
         }
     }
 }
@@ -77,7 +79,7 @@ impl Display for Release {
             output += "\n";
         }
         output += &format!("[b]Total length:[/b] {}\n\n\
-        [b]More information:[/b] N/A", show_millis(self.duration_in_millis));
+        [b]More information:[/b] {}", show_millis(self.duration_in_millis), self.mofo.clone().unwrap_or("N/A".to_string()));
 
         write!(f, "{output}")
     }

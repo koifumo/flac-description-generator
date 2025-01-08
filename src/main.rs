@@ -15,6 +15,7 @@ use lofty::read_from;
 use lofty::tag::{Tag, TagType};
 use models::release::Release;
 use copypasta::{ClipboardContext, ClipboardProvider};
+use regex::Regex;
 
 mod models;
 
@@ -87,21 +88,32 @@ fn main() -> Result<(), Error> {
         Some(folder_name) => PathBuf::from(folder_name),
         None => std::env::current_dir().unwrap()
     };
+    let mut clipboard = ClipboardContext::new().ok();
+    if clipboard.is_none() {
+        println!("Warning: Failed to create clipboard context. Will not be able to write to clipboard.");
+    }
+    
     let path = path.read_dir()?;
     let tagged_files = flac_files_from_dir(path, 1)?;
     let sorted_files = sort_tagged_files(tagged_files);
-    let release = Release::from(sorted_files);
+    let mut release = Release::from(sorted_files);
+
+    let apm_regex = Regex::new(r"(?:https?://)?(?:beta.)?music.apple.com/(\w{2})/([^/]+)/(?:[^/]+/)?((?:\d+)|(?:ra.\d+)|(?:pl.\w+))").unwrap();
+    if let Some(c) = &mut clipboard {
+        c.get_contents().ok().and_then(|content| {
+            apm_regex.captures(&content).map(|captures| {
+                release.mofo = Some(captures[0].to_string());
+            })
+        });
+    }
 
     println!("{release}\n\nPress ENTER to copy to clipboard");
     wait_for_confirmation();
-    let Ok(mut clipboard) = ClipboardContext::new() else {
-        println!("Failed to create clipboard context.");
-        wait_for_confirmation();
-        return Ok(())
-    };
-    if clipboard.set_contents(release.to_string()).is_err() {
-        println!("Failed to copy to clipboard");
-        wait_for_confirmation();
+    if let Some(mut c) = clipboard {
+        if c.set_contents(release.to_string()).is_err() {
+            println!("Failed to copy to clipboard");
+            wait_for_confirmation();
+        }
     }
     Ok(())
 }
