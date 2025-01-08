@@ -10,12 +10,16 @@ pub struct Release {
     pub duration_in_millis: u32,
     pub discs: Vec<Disc>,
     pub mofo: Option<String>,
+    various_artists: bool,
     album_info: AlbumInfo,
 }
 
 impl From<Vec<TaggedFile>> for Release {
     fn from(tagged_files: Vec<TaggedFile>) -> Self {
         let tracks: Vec<Track> = tagged_files.iter().map(Track::from).collect();
+        let first_artists = &tracks[0].artists;
+        let various_artists = tracks.iter().any(|track| &track.artists != first_artists);
+        
         let max_disc = tracks.iter().fold(0, |acc, t| max(acc, t.disc));
         let mut discs = Vec::new();
         for i in 1..=max_disc {
@@ -34,6 +38,7 @@ impl From<Vec<TaggedFile>> for Release {
             duration_in_millis: discs.iter().fold(0, |acc, d| acc + d.duration_in_millis),
             discs,
             album_info,
+            various_artists,
             mofo: None,
         }
     }
@@ -74,7 +79,11 @@ impl Display for Release {
                 output += &format!("[size=3][b]Disc {:?}[/b][/size] [i]({})[/i]\n", disc.disc, show_millis(disc.duration_in_millis));
             }
             for track in &disc.tracks {
-                output += &format!("[b]{:?}[/b]. {} — {} [i]({})[/i]\n", track.track, show_artists(&track.artists), track.title, show_millis(track.duration_in_millis));
+                if self.various_artists {
+                    output += &format!("[b]{:?}[/b]. {} — {} [i]({})[/i]\n", track.track, show_artists(&track.artists), track.title, show_millis(track.duration_in_millis));
+                } else  {
+                    output += &format!("[b]{:?}[/b]. {} [i]({})[/i]\n", track.track, track.title, show_millis(track.duration_in_millis));
+                }
             }
             output += "\n";
         }
